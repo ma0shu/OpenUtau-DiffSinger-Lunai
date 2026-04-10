@@ -130,6 +130,7 @@ Do you want to continue by splitting at the nearest position after current playh
   <system:String x:Key="dialogs.transcribe.some.notfound">SOME is not installed.</system:String>
   <system:String x:Key="dialogs.transcribe.game.notfound">GAME is not installed.</system:String>
   <system:String x:Key="dialogs.transcribe.rmvpe.notfound">RMVPE is not installed. Install it from the Package Manager.</system:String>
+  <system:String x:Key="dialogs.transcribe.hubertfa.notfound">HubertFA is not installed. Place model.onnx under Dependencies/hubertfa or HUBERTFA-REWRITE/models/1218_hfa_model_new_dict.</system:String>
   <system:String x:Key="dialogs.transcribe.allnotfound">No transcription models are installed. Please install GAME via the Package Manager or download manually from {0}.</system:String>
   <system:String x:Key="dialogs.transcribe.rmvpe">Extract pitch using RMVPE</system:String>
   <system:String x:Key="dialogs.transcribe.game.options">GAME Options</system:String>
@@ -141,6 +142,20 @@ Do you want to continue by splitting at the nearest position after current playh
   <system:String x:Key="dialogs.transcribe.game.estthreshold">Score Threshold</system:String>
   <system:String x:Key="dialogs.transcribe.game.batchsize">Batch Size</system:String>
   <system:String x:Key="dialogs.transcribe.game.batchduration">Max Batch Duration (s)</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.enable">Align Lyrics With HubertFA</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.file">Lyrics</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.threshold">Lyric Match Threshold</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.select">Select TextGrid File</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.unselected">Input lyrics separated by spaces/newlines</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.result">TextGrid alignment ({0}): words={1}, notes={2}, splits={3}, slurs={4}, low confidence={5}, auto shift={6}</system:String>
+  <system:String x:Key="dialogs.lyricalign.caption">Lyric Alignment</system:String>
+  <system:String x:Key="dialogs.lyricalign.lyrics">Lyrics</system:String>
+  <system:String x:Key="dialogs.lyricalign.lyrics.watermark">Input lyrics separated by spaces/newlines</system:String>
+  <system:String x:Key="dialogs.lyricalign.wav">WAV File</system:String>
+  <system:String x:Key="dialogs.lyricalign.wav.watermark">Select a WAV file</system:String>
+  <system:String x:Key="dialogs.lyricalign.selectwav">Select WAV File</system:String>
+  <system:String x:Key="dialogs.lyricalign.threshold">Lyric Match Threshold</system:String>
+  <system:String x:Key="dialogs.lyricalign.processing">Running lyric alignment...</system:String>
   <system:String x:Key="dialogs.transcribe.longchunk.message">One or more audio segments are very long and may consume large amount of memory when transcribing. This usually happens when the audio contains accompaniment. Still proceed?</system:String>
 
   <system:String x:Key="errors.caption">Error</system:String>
@@ -180,6 +195,7 @@ Do you want to continue by splitting at the nearest position after current playh
   <system:String x:Key="errors.failed.synth.cutoffexceedduration">Oto error: cutoff exceeds audio duration</system:String>
   <system:String x:Key="errors.failed.transcribe.rmvpe">Error loading RMVPE ONNX model. Install it from the Package Manager, or put rmvpe.onnx in {0}</system:String>
   <system:String x:Key="errors.failed.transcribe.some">Error loading SOME. Please download SOME from {0}</system:String>
+  <system:String x:Key="errors.failed.transcribe.hubertfa">Error loading HubertFA model. Put model.onnx in {0}</system:String>
   <system:String x:Key="errors.install.cpp">Try installing the latest Visual C++ Redistributable. https://learn.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist?view=msvc-170</system:String>
   <system:String x:Key="errors.lyrics.regex">Character not allowed in regular expression</system:String>
   <system:String x:Key="errors.lyrics.regexpreview">- regular expression error -</system:String>
@@ -238,6 +254,7 @@ Do you want to continue by splitting at the nearest position after current playh
 
   <system:String x:Key="lyrics.apply">Apply</system:String>
   <system:String x:Key="lyrics.applyselected">Apply only to selected notes</system:String>
+  <system:String x:Key="lyrics.align">Lyric Alignment</system:String>
   <system:String x:Key="lyrics.cancel">Cancel</system:String>
   <system:String x:Key="lyrics.caption">Edit Lyrics</system:String>
   <system:String x:Key="lyrics.livepreview">Live preview</system:String>
@@ -489,6 +506,7 @@ Warning: this option removes custom presets.</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.dashtoplus">Replace "-" with "+"</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.dashtoplustilda">Replace "-" with "+~"</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.edit">Edit Lyrics</system:String>
+  <system:String x:Key="pianoroll.menu.lyrics.align">Lyric Alignment</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.hiraganatoromaji">Hiragana to Romaji</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.insertslur">Insert slur lyric</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.javcvtocv">Japanese VCV to CV</system:String>
@@ -879,3 +897,4 @@ General
   <system:String x:Key="themeeditor.save">Save</system:String>
   <system:String x:Key="themeeditor.cancel">Cancel</system:String>
 </ResourceDictionary>
+

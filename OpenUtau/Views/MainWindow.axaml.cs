@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -1593,7 +1593,7 @@ namespace OpenUtau.App.Views {
                                         null, null,
                                         confirmLongChunk,
                                         (processedS, totalS) => {
-                                            msgbox.SetText(string.Format("{0} {1}\n{2}s / {3}s", midiText, part.name, processedS, totalS));
+                                            msgbox?.SetText(string.Format("{0} {1}\n{2}s / {3}s", midiText, part.name, processedS, totalS));
                                         });
                                 }
                             }
@@ -1611,15 +1611,38 @@ namespace OpenUtau.App.Views {
                                         gameOptions, batchingStrategy,
                                         confirmLongChunk,
                                         (processedS, totalS) => {
-                                            msgbox.SetText(string.Format("{0} {1}\n{2}s / {3}s", midiText, part.name, processedS, totalS));
+                                            msgbox?.SetText(string.Format("{0} {1}\n{2}s / {3}s", midiText, part.name, processedS, totalS));
                                         });
                                 }
                             }
                         });
                     }
                     RmvpeResult? rmvpeResult = null;
+                    if (voicePart != null && transcribeVm.ShouldAlignByLyrics && !cancelled) {
+                        var alignTitle = ThemeManager.GetString("dialogs.transcribe.game.textgrid.enable");
+                        msgbox?.SetText($"{alignTitle} {part.name}\nHubertFA 1/9: Starting");
+                        var alignOutput = await Task.Run(() => HubertFALyricAligner.Align(
+                            DocManager.Inst.Project,
+                            wavePart,
+                            voicePart,
+                            transcribeVm.LyricAlignmentLyrics,
+                            new HubertFALyricAlignerOptions {
+                                Language = transcribeVm.LanguageCode ?? "zh",
+                                AlignmentOptions = transcribeVm.BuildHubertFAAlignmentOptions(),
+                                Progress = step => msgbox?.SetText($"{alignTitle} {part.name}\n{step}"),
+                            }));
+                        var alignResult = alignOutput.Alignment;
+                        Log.Information(
+                            "HubertFA lyric alignment: words={WordCount}, sourceNotes={SourceNotes}, resultNotes={ResultNotes}, splits={Splits}, slurs={Slurs}, lowConfidence={LowConfidence}",
+                            alignResult.SourceWordCount,
+                            alignResult.SourceNoteCount,
+                            alignResult.ResultNoteCount,
+                            alignResult.SplitCount,
+                            alignResult.SlurCount,
+                            alignResult.LowConfidenceWordCount);
+                    }
                     if (voicePart != null && transcribeVm.PredictPitd && !cancelled) {
-                        msgbox.SetText($"{pitchText} {part.name}");
+                        msgbox?.SetText($"{pitchText} {part.name}");
                         rmvpeResult = await Task.Run(() => {
                             using var rmvpe = new RmvpeTranscriber();
                             using (cts.Token.Register(() => rmvpe.Interrupt())) {
@@ -1961,3 +1984,6 @@ namespace OpenUtau.App.Views {
         }
     }
 }
+
+
+

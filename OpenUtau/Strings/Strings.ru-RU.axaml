@@ -137,6 +137,11 @@ OpenUtau стремится стать средой редактирования
   <system:String x:Key="dialogs.transcribe.game.estthreshold">Score Threshold (Порог оценки)</system:String>
   <system:String x:Key="dialogs.transcribe.game.batchsize">Batch Size (Размер пакета)</system:String>
   <system:String x:Key="dialogs.transcribe.game.batchduration">Максимальная длительность пакета (в секундах)</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.enable">Выравнивать текст по TextGrid</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.file">Файл TextGrid</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.threshold">Порог совпадения лирики</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.select">Выбрать файл TextGrid</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.unselected">Файл не выбран</system:String>
   <system:String x:Key="dialogs.transcribe.longchunk.message">Один или несколько аудио-сегментов слишком длинные и могут потреблять много памяти при расшифровке. Обычно это происходит, если в аудио есть аккомпанемент (фоновая музыка). Продолжить?</system:String>
 
   <system:String x:Key="errors.caption">Ошибка</system:String>

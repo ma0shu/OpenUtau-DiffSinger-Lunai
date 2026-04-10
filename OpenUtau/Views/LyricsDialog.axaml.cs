@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -7,6 +8,8 @@ using OpenUtau.App.ViewModels;
 namespace OpenUtau.App.Views {
     public partial class LyricsDialog : Window {
         private bool closedByAction;
+
+        public Func<Task>? ShowLyricAlignmentDialog { get; set; }
 
         public LyricsDialog() {
             InitializeComponent();
@@ -29,12 +32,19 @@ namespace OpenUtau.App.Views {
             Close();
         }
 
+        async void OnAlign(object? sender, RoutedEventArgs e) {
+            if (ShowLyricAlignmentDialog != null) {
+                await ShowLyricAlignmentDialog();
+            }
+        }
+
         void OnClosing(object? sender, WindowClosingEventArgs e) {
             if (closedByAction) {
                 return;
             }
             (DataContext as LyricsViewModel)?.Cancel();
         }
+
         private void TextBoxKeyDown(object? sender, KeyEventArgs e) {
             switch (e.Key) {
                 case Key.Enter:

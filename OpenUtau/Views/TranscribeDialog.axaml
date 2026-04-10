@@ -1,13 +1,13 @@
-﻿<Window xmlns="https://github.com/avaloniaui"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="380" d:DesignHeight="320"
+        mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="420"
         x:Class="OpenUtau.App.Views.TranscribeDialog"
         Icon="/Assets/open-utau.ico"
         Title="{DynamicResource dialogs.transcribe.caption}"
         WindowStartupLocation="CenterOwner"
-        SizeToContent="Height" Width="380" CanResize="False">
+        SizeToContent="Height" Width="420" CanResize="False">
   <Window.Styles>
     <Style Selector="TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
@@ -69,7 +69,6 @@
                      Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
         </Grid>
       </Panel>
-
 
       <!-- GAME options panel, shown when GAME is selected and available -->
       <Border IsVisible="{Binding GameOptionsVisible}"
@@ -159,7 +158,59 @@
                     TickFrequency="10" IsSnapToTickEnabled="True"
                     TickPlacement="BottomRight"/>
           </Grid>
+        </StackPanel>
+      </Border>
 
+      <!-- HubertFA lyric alignment -->
+      <Border BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseHighBrush}"
+              CornerRadius="4" Padding="8">
+        <StackPanel Spacing="6">
+          <Panel ToolTip.Tip="{Binding HubertFANotFoundTip}">
+            <Grid ColumnDefinitions="Auto,Auto"
+                  Background="Transparent"
+                  PointerPressed="OnTextGridRowPressed">
+              <CheckBox Grid.Column="0"
+                        IsChecked="{Binding EnableTextGridLyricAlignment}"
+                        IsHitTestVisible="False"
+                        VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1"
+                         Margin="6,0,0,0"
+                         Text="{DynamicResource dialogs.transcribe.game.textgrid.enable}"
+                         VerticalAlignment="Center"
+                         IsVisible="{Binding HubertFAAvailable}"
+                         Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+              <TextBlock Grid.Column="1"
+                         Margin="6,0,0,0"
+                         Text="{DynamicResource dialogs.transcribe.game.textgrid.enable}"
+                         VerticalAlignment="Center"
+                         IsVisible="{Binding !HubertFAAvailable}"
+                         Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+            </Grid>
+          </Panel>
+
+          <StackPanel Spacing="6" IsVisible="{Binding LyricAlignmentOptionsVisible}">
+            <Grid RowDefinitions="Auto,Auto">
+              <Label Content="{DynamicResource dialogs.transcribe.game.textgrid.file}" Margin="0,0,0,4"/>
+              <TextBox Grid.Row="1"
+                       AcceptsReturn="True"
+                       TextWrapping="Wrap"
+                       MinHeight="80"
+                       Text="{Binding LyricAlignmentLyrics}"
+                       Watermark="{DynamicResource dialogs.transcribe.game.textgrid.unselected}"/>
+            </Grid>
+
+            <Grid ColumnDefinitions="160,60,8,*">
+              <Label Content="{DynamicResource dialogs.transcribe.game.textgrid.threshold}"/>
+              <TextBox Grid.Column="1"
+                       Text="{Binding TextGridMatchThreshold, StringFormat=F2}"
+                       TextAlignment="Right"/>
+              <Slider Grid.Column="3" Classes="fader"
+                      Value="{Binding TextGridMatchThreshold}"
+                      Minimum="0.0" Maximum="1.0"
+                      TickFrequency="0.01" IsSnapToTickEnabled="True"
+                      TickPlacement="BottomRight"/>
+            </Grid>
+          </StackPanel>
         </StackPanel>
       </Border>
 
@@ -176,3 +227,5 @@
     </StackPanel>
   </Border>
 </Window>
+
+

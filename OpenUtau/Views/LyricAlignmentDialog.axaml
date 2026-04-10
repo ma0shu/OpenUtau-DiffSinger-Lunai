@@ -1,0 +1,72 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="OpenUtau.App.Views.LyricAlignmentDialog"
+        Icon="/Assets/open-utau.ico"
+        Title="{DynamicResource dialogs.lyricalign.caption}"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="Height"
+        Width="460"
+        CanResize="False"
+        d:DesignWidth="460"
+        d:DesignHeight="340">
+  <Window.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Label">
+      <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+  </Window.Styles>
+
+  <Border Margin="{Binding $parent.WindowDecorationMargin}">
+    <StackPanel Margin="12" Spacing="8">
+      <TextBlock Text="{DynamicResource dialogs.lyricalign.lyrics}" FontWeight="SemiBold"/>
+      <TextBox Name="LyricsBox"
+               Text="{Binding Lyrics}"
+               AcceptsReturn="True"
+               TextWrapping="Wrap"
+               MinHeight="120"
+               Watermark="{DynamicResource dialogs.lyricalign.lyrics.watermark}"/>
+
+      <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto">
+        <Label Content="{DynamicResource dialogs.lyricalign.wav}"/>
+        <TextBox Grid.Column="1" Margin="0,0,0,0"
+                 Text="{Binding WavPath}"
+                 Watermark="{DynamicResource dialogs.lyricalign.wav.watermark}"/>
+        <Button Grid.Column="2"
+                Content="{DynamicResource prefs.paths.open}"
+                Click="OnBrowseWavClicked"/>
+      </Grid>
+
+      <Grid ColumnDefinitions="180,60,8,*">
+        <Label Content="{DynamicResource dialogs.lyricalign.threshold}"/>
+        <TextBox Grid.Column="1" Margin="0,0,0,0"
+                 Text="{Binding MatchThreshold, StringFormat=F2}"
+                 TextAlignment="Right"/>
+        <Slider Grid.Column="3" Classes="fader"
+                Value="{Binding MatchThreshold}"
+                Minimum="0.0" Maximum="1.0"
+                TickFrequency="0.01" IsSnapToTickEnabled="True"
+                TickPlacement="BottomRight"/>
+      </Grid>
+
+      <Grid ColumnDefinitions="*,8,*" Margin="0,4,0,0">
+        <Button Grid.Column="0"
+                Content="{DynamicResource dialogs.messagebox.ok}"
+                HorizontalAlignment="Stretch"
+                Click="OnOkClicked"
+                IsEnabled="{Binding CanRun}"/>
+        <Button Grid.Column="2"
+                Content="{DynamicResource dialogs.messagebox.cancel}"
+                HorizontalAlignment="Stretch"
+                Click="OnCancelClicked"/>
+      </Grid>
+    </StackPanel>
+  </Border>
+</Window>
+

@@ -642,4 +642,10 @@
   <system:String x:Key="welcome.recent">最近使用したファイル</system:String>
   <system:String x:Key="welcome.start">開始</system:String>
   <system:String x:Key="welcome.template">テンプレート</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.enable">Align Lyrics From TextGrid</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.file">TextGrid File</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.threshold">Lyric Match Threshold</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.select">Select TextGrid File</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.unselected">No file selected</system:String>
 </ResourceDictionary>
+

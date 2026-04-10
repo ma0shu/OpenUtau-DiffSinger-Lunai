@@ -629,4 +629,10 @@ Curve Type
   <!--<system:String x:Key="welcome.recent">Recent</system:String>-->
   <!--<system:String x:Key="welcome.start">Start</system:String>-->
   <!--<system:String x:Key="welcome.template">Template</system:String>-->
+  <system:String x:Key="dialogs.transcribe.game.textgrid.enable">Align Lyrics From TextGrid</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.file">TextGrid File</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.threshold">Lyric Match Threshold</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.select">Select TextGrid File</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.unselected">No file selected</system:String>
 </ResourceDictionary>
+

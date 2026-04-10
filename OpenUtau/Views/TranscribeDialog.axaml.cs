@@ -28,6 +28,32 @@ namespace OpenUtau.App.Views {
             _ = HandleRmvpeRowClick();
         }
 
+        void OnTextGridRowPressed(object? sender, PointerPressedEventArgs e) {
+            e.Handled = true;
+            _ = HandleHubertFaRowClick();
+        }
+
+        async System.Threading.Tasks.Task HandleHubertFaRowClick() {
+            if (DataContext is not TranscribeViewModel vm) {
+                return;
+            }
+            if (!vm.HubertFAAvailable) {
+                vm.EnableTextGridLyricAlignment = false;
+                HubertFALyricAligner.TryResolveDefaultModelPath(out var modelPath);
+                var displayPath = string.IsNullOrWhiteSpace(modelPath)
+                    ? Path.Combine(PathManager.Inst.DependencyPath, "hubertfa", "model.onnx")
+                    : modelPath;
+                await MessageBox.ShowError(this, new MessageCustomizableException(
+                    "HubertFA not found",
+                    "<translate:errors.failed.transcribe.hubertfa>",
+                    new FileNotFoundException(displayPath),
+                    false,
+                    new[] { displayPath }));
+                return;
+            }
+            vm.EnableTextGridLyricAlignment = !vm.EnableTextGridLyricAlignment;
+        }
+
         async System.Threading.Tasks.Task HandleRmvpeRowClick() {
             var vm = DataContext as TranscribeViewModel;
             if (vm == null) {
@@ -70,3 +96,4 @@ namespace OpenUtau.App.Views {
         }
     }
 }
+

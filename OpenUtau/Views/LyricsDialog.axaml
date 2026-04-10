@@ -66,6 +66,7 @@
     </StackPanel>
     <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
       <Button Content="{StaticResource lyrics.reset}" Margin="0" Command="{Binding Reset}"/>
+      <Button Content="{DynamicResource lyrics.align}" Margin="0" Click="OnAlign"/>
       <Button Content="{StaticResource lyrics.cancel}" Margin="0" Click="OnCancel"/>
       <Button Content="{StaticResource lyrics.apply}" Margin="0" Click="OnFinish"/>
     </StackPanel>

@@ -73,6 +73,7 @@
   <system:String x:Key="dialogs.transcribe.midialgorithm">算法</system:String>
   <system:String x:Key="dialogs.transcribe.some.notfound">SOME 当前未安装。</system:String>
   <system:String x:Key="dialogs.transcribe.game.notfound">GAME 当前未安装。</system:String>
+  <system:String x:Key="dialogs.transcribe.hubertfa.notfound">HubertFA 当前未安装。请将 model.onnx 放到 Dependencies/hubertfa 或 HUBERTFA-REWRITE/models/1218_hfa_model_new_dict。</system:String>
   <system:String x:Key="dialogs.transcribe.allnotfound">当前未安装任何音频转写模型。请通过包管理器安装 GAME，或从此处手动下载：{0}</system:String>
   <system:String x:Key="dialogs.transcribe.rmvpe">使用 RMVPE 提取音高</system:String>
   <system:String x:Key="dialogs.transcribe.game.options">GAME 选项</system:String>
@@ -84,6 +85,20 @@
   <system:String x:Key="dialogs.transcribe.game.estthreshold">音符发声阈值</system:String>
   <system:String x:Key="dialogs.transcribe.game.batchsize">最大批处理数量</system:String>
   <system:String x:Key="dialogs.transcribe.game.batchduration">最大批处理长度（秒）</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.enable">使用 HubertFA 对齐歌词</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.file">歌词内容</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.threshold">歌词匹配阈值</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.select">选择 TextGrid 文件</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.unselected">请输入歌词（空格/换行分词）</system:String>
+  <system:String x:Key="dialogs.transcribe.game.textgrid.result">TextGrid 对齐（{0}）：词数={1}，音符数={2}，切分={3}，转音={4}，低置信={5}，自动偏移={6}</system:String>
+  <system:String x:Key="dialogs.lyricalign.caption">歌词对齐</system:String>
+  <system:String x:Key="dialogs.lyricalign.lyrics">歌词内容</system:String>
+  <system:String x:Key="dialogs.lyricalign.lyrics.watermark">请输入歌词（空格/换行分词）</system:String>
+  <system:String x:Key="dialogs.lyricalign.wav">WAV 文件</system:String>
+  <system:String x:Key="dialogs.lyricalign.wav.watermark">请选择 WAV 文件</system:String>
+  <system:String x:Key="dialogs.lyricalign.selectwav">选择 WAV 文件</system:String>
+  <system:String x:Key="dialogs.lyricalign.threshold">歌词匹配阈值</system:String>
+  <system:String x:Key="dialogs.lyricalign.processing">正在执行歌词对齐...</system:String>
   <system:String x:Key="dialogs.transcribe.longchunk.message">音频中含有超长区段，转写时可能消耗大量内存。这通常是由于音频中带有伴奏。是否确定继续？</system:String>
 
   <system:String x:Key="errors.caption">错误</system:String>
@@ -119,6 +134,7 @@
   <!--<system:String x:Key="errors.failed.synth.cutoffbeforeoffset">Oto error: cutoff before offset</system:String>-->
   <!--<system:String x:Key="errors.failed.synth.cutoffexceedduration">Oto error: cutoff exceeds audio duration</system:String>-->
   <system:String x:Key="errors.failed.transcribe.some">加载 SOME 模型失败。请从此处下载：{0}</system:String>
+  <system:String x:Key="errors.failed.transcribe.hubertfa">加载 HubertFA 模型失败。请将 model.onnx 放到 {0}</system:String>
   <system:String x:Key="errors.install.cpp">请安装最新的 Visual C++ 运行环境。 https://learn.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist?view=msvc-170</system:String>
   <system:String x:Key="errors.lyrics.regex">正则表达式包含不支持的字符</system:String>
   <system:String x:Key="errors.lyrics.regexpreview">- 正则表达式错误 -</system:String>
@@ -170,6 +186,7 @@
   <system:String x:Key="languages.zh-yue">中文（粤语）</system:String>
 
   <system:String x:Key="lyrics.apply">应用</system:String>
+  <system:String x:Key="lyrics.align">歌词对齐</system:String>
   <system:String x:Key="lyrics.cancel">取消</system:String>
   <system:String x:Key="lyrics.caption">编辑歌词</system:String>
   <system:String x:Key="lyrics.livepreview">即时预览</system:String>
@@ -332,6 +349,7 @@ Syntax: prefix,suffix</system:String>-->
   <system:String x:Key="pianoroll.menu.lyrics">歌词</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.dashtoplus">将 "-" 替换为 "+"</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.edit">编辑歌词</system:String>
+  <system:String x:Key="pianoroll.menu.lyrics.align">歌词对齐</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.hiraganatoromaji">平假名转罗马音</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.insertslur">插入转音歌词</system:String>
   <system:String x:Key="pianoroll.menu.lyrics.javcvtocv">日语 VCV 转 CV</system:String>
@@ -653,3 +671,4 @@ Curve Type
   <system:String x:Key="welcome.start">开始</system:String>
   <system:String x:Key="welcome.template">模板</system:String>
 </ResourceDictionary>
+

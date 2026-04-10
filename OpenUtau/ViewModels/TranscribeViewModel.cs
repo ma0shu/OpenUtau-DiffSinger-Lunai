@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using OpenUtau.Core.Analysis;
 using ReactiveUI;
@@ -16,6 +17,7 @@ namespace OpenUtau.App.ViewModels {
         public bool SomeAvailable { get; }
         public bool GameAvailable { get; }
         public bool RmvpeAvailable { get; }
+        public bool HubertFAAvailable { get; }
 
         // --- Algorithm selection ---
         [Reactive] public TranscribeAlgorithm SelectedAlgorithm { get; set; }
@@ -34,6 +36,7 @@ namespace OpenUtau.App.ViewModels {
         public string? SomeNotFoundTip => SomeAvailable ? null : ThemeManager.GetString("dialogs.transcribe.some.notfound");
         public string? GameNotFoundTip => GameAvailable ? null : ThemeManager.GetString("dialogs.transcribe.game.notfound");
         public string? RmvpeNotFoundTip => RmvpeAvailable ? null : ThemeManager.GetString("dialogs.transcribe.rmvpe.notfound");
+        public string? HubertFANotFoundTip => HubertFAAvailable ? null : ThemeManager.GetString("dialogs.transcribe.hubertfa.notfound");
 
         // True when neither algorithm is installed
         public bool NoneAvailable => !SomeAvailable && !GameAvailable;
@@ -41,10 +44,14 @@ namespace OpenUtau.App.ViewModels {
         // Whether to show the GAME options box
         public bool GameOptionsVisible => SelectedAlgorithm == TranscribeAlgorithm.GAME && GameAvailable;
 
+        // Whether to show lyric alignment options
+        public bool LyricAlignmentOptionsVisible => EnableTextGridLyricAlignment;
+
         // Whether the run button can be clicked
         public bool CanRun =>
-            (SelectedAlgorithm == TranscribeAlgorithm.SOME && SomeAvailable) ||
-            (SelectedAlgorithm == TranscribeAlgorithm.GAME && GameAvailable);
+            ((SelectedAlgorithm == TranscribeAlgorithm.SOME && SomeAvailable) ||
+            (SelectedAlgorithm == TranscribeAlgorithm.GAME && GameAvailable)) &&
+            LyricAlignmentReady;
 
         [Reactive] public bool PredictPitd { get; set; } = false;
 
@@ -67,6 +74,20 @@ namespace OpenUtau.App.ViewModels {
 
         /// <summary>Maximum total padded audio duration per batch in seconds (0 = unlimited).</summary>
         [Reactive] public float MaxBatchDuration { get; set; } = 60f;
+
+        // --- HubertFA lyric alignment ---
+        [Reactive] public bool EnableTextGridLyricAlignment { get; set; } = false;
+        [Reactive] public string LyricAlignmentLyrics { get; set; } = string.Empty;
+        [Reactive] public float TextGridMatchThreshold { get; set; } = 0.25f;
+
+        public bool LyricAlignmentReady =>
+            !EnableTextGridLyricAlignment ||
+            (HubertFAAvailable && !string.IsNullOrWhiteSpace(LyricAlignmentLyrics));
+
+        public bool ShouldAlignByLyrics =>
+            EnableTextGridLyricAlignment &&
+            HubertFAAvailable &&
+            !string.IsNullOrWhiteSpace(LyricAlignmentLyrics);
 
         // Internal language code list (null = Auto); parallel to LanguageDisplayOptions
         private readonly List<string?> languageCodes;
@@ -92,6 +113,9 @@ namespace OpenUtau.App.ViewModels {
 
             // Check RMVPE availability
             RmvpeAvailable = RmvpeTranscriber.IsInstalled();
+
+            // Check HubertFA availability
+            HubertFAAvailable = HubertFALyricAligner.IsInstalled();
 
             // Default to GAME if available, otherwise fall back to SOME
             if (GameAvailable) {
@@ -120,12 +144,18 @@ namespace OpenUtau.App.ViewModels {
                 }
             }
 
-            // Propagate SelectedAlgorithm changes to derived properties
-            this.WhenAnyValue(vm => vm.SelectedAlgorithm)
+            // Propagate transcribe option changes to derived properties
+            this.WhenAnyValue(
+                    vm => vm.SelectedAlgorithm,
+                    vm => vm.EnableTextGridLyricAlignment,
+                    vm => vm.LyricAlignmentLyrics)
                 .Subscribe(_ => {
                     this.RaisePropertyChanged(nameof(UseSome));
                     this.RaisePropertyChanged(nameof(UseGame));
                     this.RaisePropertyChanged(nameof(GameOptionsVisible));
+                    this.RaisePropertyChanged(nameof(LyricAlignmentOptionsVisible));
+                    this.RaisePropertyChanged(nameof(LyricAlignmentReady));
+                    this.RaisePropertyChanged(nameof(ShouldAlignByLyrics));
                     this.RaisePropertyChanged(nameof(CanRun));
                 });
         }
@@ -151,5 +181,31 @@ namespace OpenUtau.App.ViewModels {
                 max_batch_duration = MaxBatchDuration,
             };
         }
+
+        public HubertFALyricAlignmentOptions BuildHubertFAAlignmentOptions() {
+            return new HubertFALyricAlignmentOptions {
+                MatchThreshold = TextGridMatchThreshold,
+            };
+        }
+    }
+
+    public class LyricAlignmentViewModel : ViewModelBase {
+        [Reactive] public string Lyrics { get; set; } = string.Empty;
+        [Reactive] public string WavPath { get; set; } = string.Empty;
+        [Reactive] public float MatchThreshold { get; set; } = 0.25f;
+
+        public bool CanRun =>
+            !string.IsNullOrWhiteSpace(Lyrics) &&
+            !string.IsNullOrWhiteSpace(WavPath) &&
+            File.Exists(WavPath);
+
+        public LyricAlignmentViewModel() {
+            this.WhenAnyValue(
+                    vm => vm.Lyrics,
+                    vm => vm.WavPath)
+                .Subscribe(_ => this.RaisePropertyChanged(nameof(CanRun)));
+        }
     }
 }
+
+

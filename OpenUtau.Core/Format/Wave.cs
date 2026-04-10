@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -74,6 +74,24 @@ namespace OpenUtau.Core.Format {
             return samples.ToArray();
         }
 
+        public static float[] GetMonoSamples(WaveStream waveStream, int targetSampleRate) {
+            ISampleProvider provider = waveStream.ToSampleProvider();
+            if (provider.WaveFormat.Channels > 1) {
+                provider = provider.ToMono(1f, 0f);
+            }
+            if (provider.WaveFormat.SampleRate != targetSampleRate) {
+                provider = new WdlResamplingSampleProvider(provider, targetSampleRate);
+            }
+            List<float> samples = new List<float>(targetSampleRate * 4);
+            float[] buffer = new float[Math.Max(4096, targetSampleRate)];
+            int n;
+            while ((n = provider.Read(buffer, 0, buffer.Length)) > 0) {
+                for (int i = 0; i < n; i++) {
+                    samples.Add(float.IsFinite(buffer[i]) ? buffer[i] : 0f);
+                }
+            }
+            return samples.ToArray();
+        }
         public static DiscreteSignal GetSignal(ISampleProvider sampleProvider) {
             List<float> samples = new List<float>();
             float[] buffer = new float[sampleProvider.WaveFormat.SampleRate];
@@ -143,3 +161,4 @@ namespace OpenUtau.Core.Format {
         }
     }
 }
+

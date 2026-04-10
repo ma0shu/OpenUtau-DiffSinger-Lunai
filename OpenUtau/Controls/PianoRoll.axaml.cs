@@ -15,6 +15,7 @@ using Avalonia.Interactivity;
 using OpenUtau.App.ViewModels;
 using OpenUtau.App.Views;
 using OpenUtau.Core;
+using OpenUtau.Core.Analysis;
 using OpenUtau.Core.Editing;
 using OpenUtau.Core.Ustx;
 using OpenUtau.Core.Util;
@@ -44,6 +45,7 @@ namespace OpenUtau.App.Controls {
         private bool shouldOpenNotesContextMenu;
 
         private ReactiveCommand<Unit, Unit>? lyricsDialogCommand;
+        private ReactiveCommand<Unit, Unit>? lyricAlignmentDialogCommand;
         private ReactiveCommand<Unit, Unit>? noteDefaultsCommand;
         private ReactiveCommand<BatchEdit, Unit>? noteBatchEditCommand;
         private LyricsDialog? lyricsDialog;
@@ -199,6 +201,9 @@ namespace OpenUtau.App.Controls {
             });
             lyricsDialogCommand = ReactiveCommand.Create(() => {
                 EditLyrics();
+            });
+            lyricAlignmentDialogCommand = ReactiveCommand.Create(() => {
+                _ = OpenLyricAlignmentDialogAsync();
             });
             noteDefaultsCommand = ReactiveCommand.Create(() => {
                 EditNoteDefaults();
@@ -398,11 +403,111 @@ namespace OpenUtau.App.Controls {
             vm.Start(ViewModel.NotesViewModel.Part, notes, selection);
             lyricsDialog = new LyricsDialog() {
                 DataContext = vm,
+                ShowLyricAlignmentDialog = OpenLyricAlignmentDialogAsync,
             };
             lyricsDialog.Closed += (_, _) => lyricsDialog = null;
             lyricsDialog.Show(RootWindow);
         }
 
+
+        async Task OpenLyricAlignmentDialogAsync() {
+            if (ViewModel.NotesViewModel.Part == null || ViewModel.NotesViewModel.Part.notes.Count < 1) {
+                _ = MessageBox.Show(
+                    RootWindow,
+                    ThemeManager.GetString("lyrics.nonote"),
+                    ThemeManager.GetString("lyrics.caption"),
+                    MessageBox.MessageBoxButtons.Ok);
+                return;
+            }
+            if (!HubertFALyricAligner.TryResolveDefaultModelPath(out var modelPath)) {
+                var displayPath = string.IsNullOrWhiteSpace(modelPath)
+                    ? Path.Combine(PathManager.Inst.DependencyPath, "hubertfa", "model.onnx")
+                    : modelPath;
+                _ = MessageBox.ShowError(RootWindow, new MessageCustomizableException(
+                    "HubertFA not found",
+                    "<translate:errors.failed.transcribe.hubertfa>",
+                    new FileNotFoundException(displayPath),
+                    false,
+                    new[] { displayPath }));
+                return;
+            }
+
+            var sourcePart = ViewModel.NotesViewModel.Part;
+            var vm = new LyricAlignmentViewModel {
+                Lyrics = SplitLyrics.Join(sourcePart.notes
+                    .OrderBy(note => note.position)
+                    .Select(note => note.lyric)
+                    .ToArray()),
+            };
+            var dialog = new LyricAlignmentDialog {
+                DataContext = vm,
+            };
+            await dialog.ShowDialog(RootWindow);
+            if (!dialog.Confirmed) {
+                return;
+            }
+
+            var alignedPart = (UVoicePart)sourcePart.Clone();
+            var alignWavePart = new UWavePart {
+                FilePath = vm.WavPath,
+                position = alignedPart.position,
+                trackNo = alignedPart.trackNo,
+            };
+
+            HubertFALyricAlignerResult? alignOutput = null;
+            Exception? alignException = null;
+            var processingResult = await MessageBox.ShowProcessing(
+                RootWindow,
+                ThemeManager.GetString("dialogs.lyricalign.processing"),
+                ThemeManager.GetString("dialogs.lyricalign.caption"),
+                (messageBox, cancellationToken) => {
+                    if (cancellationToken.IsCancellationRequested) {
+                        return;
+                    }
+                    messageBox.SetText("HubertFA 1/9: Starting");
+                    alignOutput = HubertFALyricAligner.Align(
+                        DocManager.Inst.Project,
+                        alignWavePart,
+                        alignedPart,
+                        vm.Lyrics,
+                        new HubertFALyricAlignerOptions {
+                            AlignmentOptions = new HubertFALyricAlignmentOptions {
+                                MatchThreshold = vm.MatchThreshold,
+                            },
+                            Progress = step => messageBox.SetText(step),
+                        });
+                },
+                task => {
+                    if (task.IsFaulted) {
+                        alignException = task.Exception?.GetBaseException() ?? task.Exception;
+                    }
+                });
+
+            if (processingResult == MessageBox.MessageBoxResult.Cancel) {
+                return;
+            }
+            if (alignException != null) {
+                _ = MessageBox.ShowError(RootWindow, alignException);
+                return;
+            }
+            if (alignOutput == null) {
+                return;
+            }
+
+            DocManager.Inst.StartUndoGroup("command.note.lyric");
+            DocManager.Inst.ExecuteCmd(new ReplacePartCommand(DocManager.Inst.Project, sourcePart, alignedPart));
+            DocManager.Inst.EndUndoGroup();
+
+            var result = alignOutput.Alignment;
+            Log.Information(
+                "Manual lyric alignment applied: words={WordCount}, sourceNotes={SourceNotes}, resultNotes={ResultNotes}, splits={Splits}, slurs={Slurs}, lowConfidence={LowConfidence}",
+                result.SourceWordCount,
+                result.SourceNoteCount,
+                result.ResultNoteCount,
+                result.SplitCount,
+                result.SlurCount,
+                result.LowConfidenceWordCount);
+        }
         void OnMenuNoteDefaults(object sender, RoutedEventArgs args) {
             EditNoteDefaults();
         }
@@ -852,6 +957,10 @@ namespace OpenUtau.App.Controls {
                         ViewModel.NotesContextMenuItems.Add(new MenuItemViewModel() {
                             Header = ThemeManager.GetString("pianoroll.menu.lyrics.edit"),
                             Command = lyricsDialogCommand,
+                        });
+                        ViewModel.NotesContextMenuItems.Add(new MenuItemViewModel() {
+                            Header = ThemeManager.GetString("pianoroll.menu.lyrics.align"),
+                            Command = lyricAlignmentDialogCommand,
                         });
                         ViewModel.NotesContextMenuItems.Add(new MenuItemViewModel() {
                             Header = ThemeManager.GetString("pianoroll.menu.notedefaults"),
@@ -2025,4 +2134,6 @@ namespace OpenUtau.App.Controls {
         }
     }
 }
+
+
 
