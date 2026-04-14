@@ -345,6 +345,12 @@
               <MenuItem Header="{DynamicResource pianoroll.menu.notes}" ItemsSource="{Binding NoteBatchEdits}" Classes="MenuItemWithSubMenu"/>
               <MenuItem Header="{DynamicResource pianoroll.menu.lyrics}" ItemsSource="{Binding LyricBatchEdits}" Classes="MenuItemWithSubMenu"/>
               <MenuItem Header="{DynamicResource pianoroll.menu.reset}" ItemsSource="{Binding ResetBatchEdits}" Classes="MenuItemWithSubMenu"/>
+              <MenuItem Header="{DynamicResource pianoroll.menu.exp.track}">
+                <MenuItem Header="{DynamicResource pianoroll.menu.exp.track.plus1}" Click="OnMenuTrackExpressionPlusOne"/>
+                <MenuItem Header="{DynamicResource pianoroll.menu.exp.track.minus1}" Click="OnMenuTrackExpressionMinusOne"/>
+                <MenuItem Header="{DynamicResource pianoroll.menu.exp.track.custom}" Click="OnMenuTrackExpressionCustomDelta"/>
+                <MenuItem Header="{DynamicResource pianoroll.menu.exp.track.scale}" Click="OnMenuTrackExpressionScaleAroundMean"/>
+              </MenuItem>
               <MenuItem Header="{DynamicResource pianoroll.menu.external}" ItemsSource="{Binding ExternalBatchEdits}" Classes="MenuItemWithSubMenu"/>
               <MenuItem Header="{DynamicResource pianoroll.menu.part.legacypluginexp}" ItemsSource="{Binding LegacyPlugins}" Name="PluginMenu" Classes="MenuItemWithSubMenu"/>
             </MenuItem>
@@ -364,7 +370,7 @@
             <ToggleButton Classes="toolbar" Margin="0" Padding="1" Height="20" Width="20" IsChecked="{Binding NotesViewModel.LyricEditMode}"
                           ToolTip.Tip="{DynamicResource pianoroll.toggle.lyricedit}">
               <Grid Width="18" Height="18">
-                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="Ly" FontSize="10" FontWeight="Bold"
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="词" FontSize="10" FontWeight="Bold"
                            Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
               </Grid>
             </ToggleButton>

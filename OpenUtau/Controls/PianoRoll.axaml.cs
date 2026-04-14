@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -518,6 +519,425 @@ namespace OpenUtau.App.Controls {
             if (dialog.Position.Y < 0) {
                 dialog.Position = dialog.Position.WithY(0);
             }
+        }
+
+        readonly struct TickRange {
+            public int Start { get; }
+            public int End { get; }
+
+            public TickRange(int start, int end) {
+                Start = Math.Min(start, end);
+                End = Math.Max(start, end);
+            }
+
+            public bool IsValid => End >= Start;
+            public bool Contains(int tick) => Start <= tick && tick <= End;
+            public bool Overlaps(int start, int end) => start <= End && Start <= end;
+        }
+
+        void OnMenuTrackExpressionPlusOne(object? sender, RoutedEventArgs e) {
+            ApplyTrackExpressionDelta(1);
+        }
+
+        void OnMenuTrackExpressionMinusOne(object? sender, RoutedEventArgs e) {
+            ApplyTrackExpressionDelta(-1);
+        }
+
+        void OnMenuTrackExpressionCustomDelta(object? sender, RoutedEventArgs e) {
+            var dialog = new TypeInDialog() {
+                Title = ThemeManager.GetString("pianoroll.menu.exp.track.custom.title"),
+                onFinish = value => {
+                    if (string.IsNullOrWhiteSpace(value)) {
+                        return;
+                    }
+                    if (!int.TryParse(value, out int delta)) {
+                        _ = MessageBox.Show(
+                            RootWindow,
+                            ThemeManager.GetString("pianoroll.menu.exp.track.invaliddelta"),
+                            ThemeManager.GetString("errors.caption"),
+                            MessageBox.MessageBoxButtons.Ok);
+                        return;
+                    }
+                    ApplyTrackExpressionDelta(delta);
+                },
+            };
+            dialog.SetPrompt(ThemeManager.GetString("pianoroll.menu.exp.track.custom.prompt"));
+            dialog.SetText("1");
+            dialog.ShowDialog(RootWindow);
+        }
+
+        void OnMenuTrackExpressionScaleAroundMean(object? sender, RoutedEventArgs e) {
+            var dialog = new TypeInDialog() {
+                Title = ThemeManager.GetString("pianoroll.menu.exp.track.scale.title"),
+                onFinish = value => {
+                    if (string.IsNullOrWhiteSpace(value)) {
+                        return;
+                    }
+                    if (!TryParseScale(value, out double scale)
+                        || double.IsNaN(scale)
+                        || double.IsInfinity(scale)) {
+                        _ = MessageBox.Show(
+                            RootWindow,
+                            ThemeManager.GetString("pianoroll.menu.exp.track.invalidscale"),
+                            ThemeManager.GetString("errors.caption"),
+                            MessageBox.MessageBoxButtons.Ok);
+                        return;
+                    }
+                    ApplyTrackCurveScaleAroundMean(scale);
+                },
+            };
+            dialog.SetPrompt(ThemeManager.GetString("pianoroll.menu.exp.track.scale.prompt"));
+            dialog.SetText("1.0");
+            dialog.ShowDialog(RootWindow);
+        }
+
+        void ApplyTrackExpressionDelta(int delta) {
+            if (delta == 0) {
+                return;
+            }
+            if (!TryGetTrackExpressionContext(out var project, out var track, out var descriptor, out var voiceParts)) {
+                return;
+            }
+            if (descriptor.type != UExpressionType.Curve && descriptor.type != UExpressionType.Options) {
+                _ = MessageBox.Show(
+                    RootWindow,
+                    ThemeManager.GetString("pianoroll.menu.exp.track.unsupported"),
+                    ThemeManager.GetString("errors.caption"),
+                    MessageBox.MessageBoxButtons.Ok);
+                return;
+            }
+            if (descriptor.type == UExpressionType.Options && descriptor.max < descriptor.min) {
+                _ = MessageBox.Show(
+                    RootWindow,
+                    ThemeManager.GetString("pianoroll.menu.exp.track.nooptions"),
+                    ThemeManager.GetString("errors.caption"),
+                    MessageBox.MessageBoxButtons.Ok);
+                return;
+            }
+
+            var operationRangesAbs = GetOperationRangesAbs();
+            List<UCommand> commands = descriptor.type == UExpressionType.Curve
+                ? BuildTrackCurveDeltaCommands(project, voiceParts, descriptor, delta, operationRangesAbs)
+                : BuildTrackOptionDeltaCommands(project, track, voiceParts, descriptor, delta, operationRangesAbs);
+
+            if (commands.Count == 0) {
+                _ = MessageBox.Show(
+                    RootWindow,
+                    ThemeManager.GetString("pianoroll.menu.exp.track.nochange"),
+                    ThemeManager.GetString("pianoroll.menu.exp.track"),
+                    MessageBox.MessageBoxButtons.Ok);
+                return;
+            }
+
+            DocManager.Inst.StartUndoGroup("command.exp.edit", true);
+            foreach (var cmd in commands) {
+                DocManager.Inst.ExecuteCmd(cmd);
+            }
+            DocManager.Inst.EndUndoGroup();
+        }
+
+        void ApplyTrackCurveScaleAroundMean(double scale) {
+            if (!TryGetTrackExpressionContext(out var project, out _, out var descriptor, out var voiceParts)) {
+                return;
+            }
+            if (descriptor.type != UExpressionType.Curve) {
+                _ = MessageBox.Show(
+                    RootWindow,
+                    ThemeManager.GetString("pianoroll.menu.exp.track.scale.onlycurve"),
+                    ThemeManager.GetString("errors.caption"),
+                    MessageBox.MessageBoxButtons.Ok);
+                return;
+            }
+
+            var operationRangesAbs = GetOperationRangesAbs();
+            var commands = BuildTrackCurveScaleAroundMeanCommands(
+                project, voiceParts, descriptor, scale, operationRangesAbs);
+            if (commands.Count == 0) {
+                _ = MessageBox.Show(
+                    RootWindow,
+                    ThemeManager.GetString("pianoroll.menu.exp.track.nochange"),
+                    ThemeManager.GetString("pianoroll.menu.exp.track"),
+                    MessageBox.MessageBoxButtons.Ok);
+                return;
+            }
+
+            DocManager.Inst.StartUndoGroup("command.exp.edit", true);
+            foreach (var cmd in commands) {
+                DocManager.Inst.ExecuteCmd(cmd);
+            }
+            DocManager.Inst.EndUndoGroup();
+        }
+
+        static bool TryParseScale(string value, out double scale) {
+            return double.TryParse(value, NumberStyles.Float, CultureInfo.CurrentCulture, out scale)
+                || double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out scale);
+        }
+
+        bool TryGetTrackExpressionContext(
+            out UProject project,
+            out UTrack track,
+            out UExpressionDescriptor descriptor,
+            out List<UVoicePart> voiceParts) {
+            project = DocManager.Inst.Project;
+            track = null!;
+            descriptor = null!;
+            voiceParts = new List<UVoicePart>();
+
+            var notesVm = ViewModel?.NotesViewModel;
+            var part = notesVm?.Part;
+            if (notesVm == null || part == null) {
+                return false;
+            }
+            track = project.tracks[part.trackNo];
+            if (!track.TryGetExpDescriptor(project, notesVm.PrimaryKey, out descriptor)) {
+                return false;
+            }
+            voiceParts = project.parts
+                .OfType<UVoicePart>()
+                .Where(p => p.trackNo == part.trackNo)
+                .ToList();
+            return voiceParts.Count > 0;
+        }
+
+        List<TickRange> GetOperationRangesAbs() {
+            var notesVm = ViewModel?.NotesViewModel;
+            var part = notesVm?.Part;
+            if (notesVm == null || part == null || notesVm.Selection.IsEmpty) {
+                return new List<TickRange>();
+            }
+            var ranges = notesVm.Selection
+                .Select(note => new TickRange(part.position + note.position, part.position + note.RightBound))
+                .Where(range => range.IsValid);
+            return MergeRanges(ranges);
+        }
+
+        static List<TickRange> MergeRanges(IEnumerable<TickRange> ranges) {
+            var ordered = ranges.OrderBy(range => range.Start).ToList();
+            var merged = new List<TickRange>();
+            foreach (var range in ordered) {
+                if (merged.Count == 0) {
+                    merged.Add(range);
+                    continue;
+                }
+                var last = merged[^1];
+                if (range.Start <= last.End + 1) {
+                    merged[^1] = new TickRange(last.Start, Math.Max(last.End, range.End));
+                } else {
+                    merged.Add(range);
+                }
+            }
+            return merged;
+        }
+
+        static List<TickRange> GetLocalRanges(UVoicePart part, IReadOnlyList<TickRange> operationRangesAbs) {
+            if (operationRangesAbs.Count == 0) {
+                return new List<TickRange> { new TickRange(0, part.Duration) };
+            }
+            var localRanges = new List<TickRange>();
+            foreach (var range in operationRangesAbs) {
+                int start = Math.Max(0, range.Start - part.position);
+                int end = Math.Min(part.Duration, range.End - part.position);
+                if (end >= start) {
+                    localRanges.Add(new TickRange(start, end));
+                }
+            }
+            return MergeRanges(localRanges);
+        }
+
+        static bool IsTickInRanges(int tick, IReadOnlyList<TickRange> ranges) {
+            if (ranges.Count == 0) {
+                return true;
+            }
+            return ranges.Any(range => range.Contains(tick));
+        }
+
+        static bool OverlapsAnyRange(int start, int end, IReadOnlyList<TickRange> ranges) {
+            if (ranges.Count == 0) {
+                return true;
+            }
+            return ranges.Any(range => range.Overlaps(start, end));
+        }
+
+        static List<int> BuildSampleTicks(int duration) {
+            var ticks = new List<int>();
+            if (duration <= 0) {
+                ticks.Add(0);
+                return ticks;
+            }
+            for (int tick = 0; tick <= duration; tick += UCurve.interval) {
+                ticks.Add(tick);
+            }
+            if (ticks[^1] != duration) {
+                ticks.Add(duration);
+            }
+            return ticks;
+        }
+
+        static (int[] xs, int[] ys) BuildCurveFromSamples(
+            UExpressionDescriptor descriptor,
+            IReadOnlyList<int> sampleTicks,
+            IReadOnlyList<int> sampleValues) {
+            var curve = new UCurve(descriptor);
+            curve.xs.AddRange(sampleTicks);
+            curve.ys.AddRange(sampleValues);
+            curve.Simplify();
+            return (curve.xs.ToArray(), curve.ys.ToArray());
+        }
+
+        static int SampleCurveOrZero(UCurve? curve, int tick) {
+            if (curve == null || curve.xs.Count == 0 || curve.ys.Count == 0) {
+                return 0;
+            }
+            return curve.Sample(tick);
+        }
+
+        static List<UCommand> BuildTrackCurveDeltaCommands(
+            UProject project,
+            IEnumerable<UVoicePart> voiceParts,
+            UExpressionDescriptor descriptor,
+            int delta,
+            IReadOnlyList<TickRange> operationRangesAbs) {
+            var commands = new List<UCommand>();
+            foreach (var part in voiceParts) {
+                var localRanges = GetLocalRanges(part, operationRangesAbs);
+                if (localRanges.Count == 0) {
+                    continue;
+                }
+                var curve = part.curves.FirstOrDefault(c => c.abbr == descriptor.abbr);
+                var sampleTicks = BuildSampleTicks(part.Duration);
+                var sampleValues = new List<int>(sampleTicks.Count);
+                bool changed = false;
+                foreach (int tick in sampleTicks) {
+                    int oldValue = SampleCurveOrZero(curve, tick);
+                    int newValue = IsTickInRanges(tick, localRanges)
+                        ? (int)Math.Clamp(oldValue + delta, descriptor.min, descriptor.max)
+                        : oldValue;
+                    sampleValues.Add(newValue);
+                    changed |= newValue != oldValue;
+                }
+                if (!changed) {
+                    continue;
+                }
+                var oldXs = curve?.xs.ToArray() ?? Array.Empty<int>();
+                var oldYs = curve?.ys.ToArray() ?? Array.Empty<int>();
+                var (newXs, newYs) = BuildCurveFromSamples(descriptor, sampleTicks, sampleValues);
+                commands.Add(new MergedSetCurveCommand(
+                    project,
+                    part,
+                    descriptor.abbr,
+                    oldXs,
+                    oldYs,
+                    newXs,
+                    newYs));
+            }
+            return commands;
+        }
+
+        static List<UCommand> BuildTrackCurveScaleAroundMeanCommands(
+            UProject project,
+            IEnumerable<UVoicePart> voiceParts,
+            UExpressionDescriptor descriptor,
+            double scale,
+            IReadOnlyList<TickRange> operationRangesAbs) {
+            var commands = new List<UCommand>();
+            foreach (var part in voiceParts) {
+                var localRanges = GetLocalRanges(part, operationRangesAbs);
+                if (localRanges.Count == 0) {
+                    continue;
+                }
+                var curve = part.curves.FirstOrDefault(c => c.abbr == descriptor.abbr);
+                var sampleTicks = BuildSampleTicks(part.Duration);
+                var oldValues = sampleTicks
+                    .Select(tick => SampleCurveOrZero(curve, tick))
+                    .ToArray();
+                var valuesInRange = sampleTicks
+                    .Zip(oldValues, (tick, value) => new { tick, value })
+                    .Where(pair => IsTickInRanges(pair.tick, localRanges))
+                    .Select(pair => pair.value)
+                    .ToArray();
+                if (valuesInRange.Length == 0) {
+                    continue;
+                }
+                double mean = valuesInRange.Average();
+                var newValues = new List<int>(sampleTicks.Count);
+                bool changed = false;
+                for (int i = 0; i < sampleTicks.Count; i++) {
+                    int oldValue = oldValues[i];
+                    int newValue = IsTickInRanges(sampleTicks[i], localRanges)
+                        ? (int)Math.Clamp(
+                            Math.Round(mean + (oldValue - mean) * scale),
+                            descriptor.min,
+                            descriptor.max)
+                        : oldValue;
+                    newValues.Add(newValue);
+                    changed |= newValue != oldValue;
+                }
+                if (!changed) {
+                    continue;
+                }
+                var oldXs = curve?.xs.ToArray() ?? Array.Empty<int>();
+                var oldYs = curve?.ys.ToArray() ?? Array.Empty<int>();
+                var (newXs, newYs) = BuildCurveFromSamples(descriptor, sampleTicks, newValues);
+                commands.Add(new MergedSetCurveCommand(
+                    project,
+                    part,
+                    descriptor.abbr,
+                    oldXs,
+                    oldYs,
+                    newXs,
+                    newYs));
+            }
+            return commands;
+        }
+
+        static List<UCommand> BuildTrackOptionDeltaCommands(
+            UProject project,
+            UTrack track,
+            IEnumerable<UVoicePart> voiceParts,
+            UExpressionDescriptor descriptor,
+            int delta,
+            IReadOnlyList<TickRange> operationRangesAbs) {
+            var commands = new List<UCommand>();
+            int min = (int)descriptor.min;
+            int max = (int)descriptor.max;
+            foreach (var part in voiceParts) {
+                foreach (var note in part.notes) {
+                    int noteStart = part.position + note.position;
+                    int noteEnd = part.position + note.RightBound;
+                    if (!OverlapsAnyRange(noteStart, noteEnd, operationRangesAbs)) {
+                        continue;
+                    }
+
+                    var values = note.GetExpression(project, track, descriptor.abbr);
+                    int valueCount = Math.Max(values.Count, 1);
+                    var explicitMap = note.phonemeExpressions
+                        .Where(exp => exp.descriptor?.abbr == descriptor.abbr && exp.index.HasValue)
+                        .GroupBy(exp => exp.index!.Value)
+                        .ToDictionary(group => group.Key, group => (float?)group.Last().value);
+
+                    bool changed = false;
+                    var newValues = new float?[valueCount];
+                    for (int i = 0; i < valueCount; i++) {
+                        int oldValue = i < values.Count ? (int)Math.Round(values[i].Item1) : 0;
+                        int newValue = Math.Clamp(oldValue + delta, min, max);
+                        if (newValue == oldValue) {
+                            if (i < values.Count && explicitMap.TryGetValue(i, out var oldExplicitValue)) {
+                                newValues[i] = oldExplicitValue;
+                            } else {
+                                newValues[i] = null;
+                            }
+                            continue;
+                        }
+                        newValues[i] = newValue;
+                        changed = true;
+                    }
+                    if (changed) {
+                        commands.Add(new SetNoteExpressionCommand(
+                            project, track, part, note, descriptor.abbr, newValues));
+                    }
+                }
+            }
+            return commands;
         }
 
         void AddBreathNote() {
