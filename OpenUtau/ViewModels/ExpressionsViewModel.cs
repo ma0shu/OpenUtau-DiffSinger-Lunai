@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -284,9 +284,9 @@ namespace OpenUtau.App.ViewModels {
                 }
             }
         }
-
-        public void GetSuggestions() {
-            foreach (var track in DocManager.Inst.Project.tracks) {
+        private static List<UExpressionDescriptor> CollectRendererSuggestions(UProject project, ISet<string> existingAbbrs) {
+            var result = new List<UExpressionDescriptor>();
+            foreach (var track in project.tracks) {
                 if (track.RendererSettings.Renderer == null) {
                     continue;
                 }
@@ -295,14 +295,46 @@ namespace OpenUtau.App.ViewModels {
                     continue;
                 }
                 foreach (var suggestion in suggestions) {
-                    //Add if not already in the list
-                    if (!expressionsSourceProject.Any(builder => builder.Abbr == suggestion.abbr)) {
-                        expressionsSourceProject.Add(new ExpressionBuilder(suggestion));
+                    if (suggestion == null || string.IsNullOrWhiteSpace(suggestion.abbr)) {
+                        continue;
                     }
+                    var abbr = suggestion.abbr.Trim().ToLowerInvariant();
+                    if (!existingAbbrs.Add(abbr)) {
+                        continue;
+                    }
+                    var clone = suggestion.Clone();
+                    clone.abbr = abbr;
+                    result.Add(clone);
                 }
             }
+            return result;
         }
 
+        public static bool TryApplyRendererSuggestions(UProject project) {
+            var existingAbbrs = new HashSet<string>(project.expressions.Keys, StringComparer.OrdinalIgnoreCase);
+            var suggestions = CollectRendererSuggestions(project, existingAbbrs);
+            if (suggestions.Count == 0) {
+                return false;
+            }
+            var descriptors = project.expressions.Values
+                .Select(descriptor => descriptor.Clone())
+                .ToList();
+            descriptors.AddRange(suggestions);
+            DocManager.Inst.StartUndoGroup("command.project.exp");
+            DocManager.Inst.ExecuteCmd(new ConfigureExpressionsCommand(project, descriptors.ToArray()));
+            DocManager.Inst.EndUndoGroup();
+            return true;
+        }
+
+        public void GetSuggestions() {
+            var existingAbbrs = new HashSet<string>(
+                expressionsSourceProject.Select(builder => builder.Abbr),
+                StringComparer.OrdinalIgnoreCase);
+            var suggestions = CollectRendererSuggestions(DocManager.Inst.Project, existingAbbrs);
+            foreach (var suggestion in suggestions) {
+                expressionsSourceProject.Add(new ExpressionBuilder(suggestion));
+            }
+        }
         public void OnClickProject() {
             if (!IsTrackOverride) { // track -> project
                 SetExpressionsList();

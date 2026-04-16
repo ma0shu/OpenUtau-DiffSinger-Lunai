@@ -2538,6 +2538,7 @@ namespace OpenUtau.App.Controls {
             if (expSelector1 == null) {
                 return;
             }
+            ExpressionsViewModel.TryApplyRendererSuggestions(DocManager.Inst.Project);
             var exps = new ExpSelector[] { expSelector1, expSelector2, expSelector3, expSelector4, expSelector5, expSelector6, expSelector7, expSelector8, expSelector9, expSelector10 };
             exps[DocManager.Inst.Project.expSecondary].SelectExp();
             exps[DocManager.Inst.Project.expPrimary].SelectExp();
