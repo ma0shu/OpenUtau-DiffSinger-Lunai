@@ -1,35 +1,115 @@
-## Fork说明
 
-本Fork在[keirokeer/OpenUtau-DiffSinger-Lunai
-](https://github.com/keirokeer/OpenUtau-DiffSinger-Lunai)基础上:
+# OpenUtau DiffSinger Lunai (Ma0shu Fork)
 
-1. 增加了歌词快捷编辑功能（其操作逻辑详见下方提示词），同时优化了歌词编辑窗口，减少歌词编辑时的卡顿。
+> 基于 [keirokeer/OpenUtau-DiffSinger-Lunai](https://github.com/keirokeer/OpenUtau-DiffSinger-Lunai) 的自用修改版本，用于解决个人使用中的一些痛点问题
 
-2. 引入了HUBERTFA模型，支持歌词自动填入，需要从RELEASE中下载模型并作为Dependency载入。
+---
 
-3. 增加表情曲线批量修改功能。
+## ✨ 修改内容
 
-4. 修改移除了多实例限制（注意：可能造成异常，仅供临时参考用）
+### 📝 歌词相关
 
-Windows-x64版本成品可在Release直接下载。
+* 新增 **歌词快捷编辑功能**（详见下方说明）
+* 优化歌词编辑窗口：
 
-Feel free to cherry-pick.
+  * 取消强制前台限制
+  * 应用歌词时才进行校验，减少卡顿
+* 引入 [HubertFA](https://github.com/wolfgitpr/HubertFA) 模型：
 
-## Vibe Code 说明
-使用GPT5.4-Codex进行Vibe Code。
+  * 支持歌词自动填入（稳定性一般）
+  * 需从 **Release** 下载模型并作为 Dependency 加载
 
-**Prompt:**
-1. 
-- 点击音符，把该音符的歌词换为“+~”，原来此位置的歌词不要去掉而是所有音符往后顺延；
-- 按住Alt，点击音符某处，使用分割工具在此处将此音符拆开，与分割工具不同的是拆出来的第二个音不要变为“+”而是后面的歌词向前顺延补进来；
-- 在拖动音符边界时，如果是音和音的边界，自动编辑相邻两个音的长度，即把Alt+拖动的行为和直接拖动的行为对调。
-- 该模式的开关在显示提示按钮的旁边。
-2. 编辑歌词面板中编辑/插入/删除歌词会卡几秒中，现渲染时再进行重校验/重算，实现编辑不卡顿，开始渲染卡一下（被视为可接受的）。另外，在Windows下（其他平台未测试不知晓），编辑歌词窗口强制最前，下方的界面无法操作，这一限制去除。
+---
 
-鸣谢：[HubertFA](https://github.com/wolfgitpr/HubertFA)
+### 🎛 Expression 相关
 
-## 编译指南
-`$ver=(git describe --tags --match '[0-9]*' --abbrev=0).Trim(); $sha=(git rev-parse --short HEAD).Trim(); $env:APPVEYOR_BUILD_VERSION=$ver; dotnet publish OpenUtau/OpenUtau.csproj -c Release -r win-x64 --self-contained true -o bin/win-x64 /p:Version=$ver /p:FileVersion=$ver /p:AssemblyVersion=$ver /p:InformationalVersion="$ver+$sha"`
+* 新增 **表情曲线批量修改** 功能
+  * 位于菜单栏「批量编辑」下
+  * ! 需要曲线本身有初始数据，可以随便在空白区画点曲线
+
+* 渲染器建议优化：
+
+  * 自动隐藏「当前渲染器不支持」的表情
+  * 打开 PianoRoll 时自动获取建议表情
+
+* 表情列表增强：
+
+  * 提供 **中文名称显示**
+
+---
+
+### ⚙️ 其他改动
+
+* 移除多实例限制
+
+  ! 注意：
+
+  * 可能导致渲染错位等异常
+  * **正式调教建议使用单窗口**
+
+---
+
+### 🐞 Bug 修复
+
+* 修复 Lunai 在 SingerHub 加载失败时弹窗报错
+
+  * 在国内网络环境下此情况视为正常
+
+---
+
+## 🧩 歌词快捷编辑说明
+
+功能入口：
+👉 位于菜单栏 `?` 按钮旁的 **「词」按钮**
+
+### 操作逻辑
+
+* **普通点击音符**
+
+  * 将该音符歌词替换为 `+~`
+  * 原歌词不会删除，而是整体向后顺延
+
+* **Alt + 点击音符**
+
+  * 在点击位置分割音符
+  * 与普通分割不同：
+
+    * 新音符不会变为 `+`
+    * 后续歌词会自动向前补位
+
+* **拖动音符边界**
+
+  * 若为两个音符之间的边界：
+
+    * 自动同时调整相邻音符长度
+    * 行为相当于 **Alt + 拖动**
+
+---
+
+## 📦 下载
+
+👉 Windows x64 版本成品及HubertFA可在 **Release 页面**直接下载
+
+---
+
+## 🛠 编译
+
+```powershell
+$ver=(git describe --tags --match '[0-9]*' --abbrev=0).Trim();
+$sha=(git rev-parse --short HEAD).Trim();
+$env:APPVEYOR_BUILD_VERSION=$ver;
+dotnet publish OpenUtau/OpenUtau.csproj -c Release -r win-x64 --self-contained true -o bin/win-x64 /p:Version=$ver /p:FileVersion=$ver /p:AssemblyVersion=$ver /p:InformationalVersion="$ver+$sha"
+```
+
+---
+
+## 🍒 更多
+
+> Feel free to cherry-pick.
+
+---
+
+## 📖 原项目README
 
 # OpenUtau
 
