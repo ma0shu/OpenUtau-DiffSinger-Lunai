@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia.Media;
@@ -14,6 +15,7 @@ using OpenUtau.Core;
 using OpenUtau.Core.SingerHub;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
+using Serilog;
 
 namespace OpenUtau.App.ViewModels {
 
@@ -235,6 +237,28 @@ namespace OpenUtau.App.ViewModels {
 
         static string NormalizeName(string s) => (s ?? string.Empty).Trim();
 
+        static bool IsNetworkException(Exception e) {
+            for (var current = e; current != null; current = current.InnerException) {
+                if (current is HttpRequestException ||
+                    current is SocketException ||
+                    current is IOException ||
+                    current is TimeoutException ||
+                    current is TaskCanceledException) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        async Task<List<SingerHubEntry>> FetchRegistrySafelyAsync(string? registryUrl = null) {
+            try {
+                return await client.FetchRegistryAsync(registryUrl);
+            } catch (Exception e) when (IsNetworkException(e)) {
+                Log.Warning(e, "SingerHub: failed to fetch registry {registryUrl}", registryUrl ?? SingerHubClient.DefaultRegistryUrl);
+                return new List<SingerHubEntry>();
+            }
+        }
+
         async Task LoadIconsAsync(IEnumerable<SingerHubRowViewModel> rows) {
             using var http = new HttpClient();
             http.DefaultRequestHeaders.Add("User-Agent", "OpenUtau-LUNAI");
@@ -263,23 +287,13 @@ namespace OpenUtau.App.ViewModels {
         public async Task RefreshAsync() {
             try {
                 Status = ThemeManager.GetString("lunai.status.fetching");
-                var lunaiList = await client.FetchRegistryAsync();
+                var lunaiList = await FetchRegistrySafelyAsync();
 
                 // UFR registry: remote JSON only; on error just skip.
-                List<SingerHubEntry> ufrList;
-                try {
-                    ufrList = await client.FetchRegistryAsync("https://utaufrance.com/ufr-pack/singers.json");
-                } catch {
-                    ufrList = new List<SingerHubEntry>();
-                }
+                var ufrList = await FetchRegistrySafelyAsync("https://utaufrance.com/ufr-pack/singers.json");
 
                 // BRAPA registry: remote JSON only (errors are ignored).
-                List<SingerHubEntry> brapaList;
-                try {
-                    brapaList = await client.FetchRegistryAsync("https://www.teambrapa.com.br/singers.json");
-                } catch {
-                    brapaList = new List<SingerHubEntry>();
-                }
+                var brapaList = await FetchRegistrySafelyAsync("https://www.teambrapa.com.br/singers.json");
 
                 var registry = lunaiList.Concat(ufrList).Concat(brapaList).ToList();
                 Status = ThemeManager.GetString("lunai.status.listing");
@@ -320,7 +334,9 @@ namespace OpenUtau.App.ViewModels {
                 foreach (var r in ordered) Rows.Add(r);
                 ApplyFilter();
                 _ = LoadIconsAsync(ordered);
-                Status = ThemeManager.GetString("lunai.status.ready");
+                Status = (lunaiList.Count + ufrList.Count + brapaList.Count) > 0
+                    ? ThemeManager.GetString("lunai.status.ready")
+                    : ThemeManager.GetString("lunai.status.error");
             } catch (Exception e) {
                 Status = ThemeManager.GetString("lunai.status.error");
                 DocManager.Inst.ExecuteCmd(new ErrorMessageNotification(e));
